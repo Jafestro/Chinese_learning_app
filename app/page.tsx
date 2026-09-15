@@ -1,69 +1,108 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+'use client';
+
+import { useEffect, useMemo, useState } from 'react';
+import Flashcard from './components/Flashcard';
+import ProgressBar from './components/ProgressBar';
+import SentencePractice from './components/SentencePractice';
+
+type Word = {
+  id: number;
+  character: string;
+  pinyin: string;
+  english: string;
+};
+
+const STORAGE_KEY = 'learnedWords';
 
 export default function Home() {
+  const [words, setWords] = useState<Word[]>([]);
+  const [learnedWords, setLearnedWords] = useState<number[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setLearnedWords(parsed.filter((value): value is number => Number.isInteger(value)));
+        }
+      } catch {
+        localStorage.removeItem(STORAGE_KEY);
+      }
+    }
+
+    fetch('/top_2500_characters.json')
+      .then((response) => response.json())
+      .then((data: Word[]) => setWords(data))
+      .catch(() => setWords([]))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(learnedWords));
+  }, [learnedWords]);
+
+  const unlearnedWords = useMemo(
+    () => words.filter((word) => !learnedWords.includes(word.id)),
+    [words, learnedWords],
+  );
+
+  useEffect(() => {
+    if (unlearnedWords.length === 0) {
+      setCurrentIndex(0);
+      return;
+    }
+
+    setCurrentIndex((previous) => Math.min(previous, unlearnedWords.length - 1));
+  }, [unlearnedWords.length]);
+
+  const currentWord = unlearnedWords[currentIndex] ?? null;
+
+  const handleMarkLearned = () => {
+    if (!currentWord) {
+      return;
+    }
+
+    setLearnedWords((previous) => {
+      if (previous.includes(currentWord.id)) {
+        return previous;
+      }
+      return [...previous, currentWord.id];
+    });
+
+    setCurrentIndex((previous) => Math.min(previous, Math.max(unlearnedWords.length - 2, 0)));
+  };
+
+  const shouldShowSentencePractice = learnedWords.length >= 20;
+
   return (
-    <div className={styles.page}>
-      <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className={styles.intro}>
-          <h1>
-            To get started, edit the{" "}
-            <code className={styles.code}>page.tsx</code> file.
-          </h1>
-          <p>
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className={styles.ctas}>
-          <a
-            className={styles.primary}
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className={styles.logo}
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className={styles.secondary}
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="pageShell">
+      <section className="appCard">
+        <header className="topBar">
+          <div>
+            <p className="eyebrow">Chinese Character Journey</p>
+            <h1>Daily Study</h1>
+          </div>
+          <ProgressBar current={learnedWords.length} total={words.length || 2500} />
+        </header>
+
+        {isLoading ? (
+          <div className="loadingState">Loading vocabulary...</div>
+        ) : shouldShowSentencePractice ? (
+          <SentencePractice learnedWords={learnedWords} />
+        ) : currentWord ? (
+          <Flashcard
+            word={currentWord}
+            currentIndex={currentIndex}
+            total={unlearnedWords.length || 1}
+            onMarkLearned={handleMarkLearned}
+          />
+        ) : (
+          <div className="loadingState">All words mastered — check back later.</div>
+        )}
+      </section>
+    </main>
   );
 }
