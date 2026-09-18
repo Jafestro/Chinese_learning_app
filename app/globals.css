@@ -44,29 +44,91 @@ button {
 }
 
 .pageShell {
+  --app-background: rgba(255, 255, 255, 0.74);
+  --app-border: rgba(255, 255, 255, 0.6);
+  --app-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+  --menu-background: rgba(255, 255, 255, 0.55);
+  --menu-border: #e5e7eb;
+  --menu-hover: #f8fbff;
+  --menu-selected: #f2f7ff;
   width: 100%;
   min-height: 100vh;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 32px 16px;
+  background: linear-gradient(135deg, #f7f1e3 0%, #eef6ff 100%);
+  transition: background 0.3s ease;
 }
 
 .appCard {
   width: min(100%, 780px);
-  background: rgba(255, 255, 255, 0.74);
+  background: var(--app-background);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.6);
+  border: 1px solid var(--app-border);
   border-radius: 26px;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.12);
+  box-shadow: var(--app-shadow);
   padding: 28px;
+  color: var(--foreground);
+  transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .topBar {
   display: flex;
-  flex-direction: column;
-  gap: 18px;
-  margin-bottom: 24px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.brandBlock {
+  min-width: 0;
+}
+
+.headerDescription {
+  max-width: 440px;
+  margin-top: 10px;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.themeToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  flex-shrink: 0;
+  border: 1px solid var(--menu-border);
+  border-radius: 12px;
+  padding: 10px 13px;
+  background: var(--menu-background);
+  color: var(--foreground);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 700;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.themeToggle:hover {
+  border-color: var(--primary);
+  background: var(--menu-hover);
+  transform: translateY(-1px);
+}
+
+.themeToggle:focus-visible,
+.menuOption:focus-visible,
+.primaryButton:focus-visible,
+.secondaryButton:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 35%, transparent);
+  outline-offset: 3px;
+}
+
+.themeIcon {
+  display: grid;
+  width: 1.2rem;
+  height: 1.2rem;
+  place-items: center;
+  color: var(--primary-strong);
+  font-size: 1rem;
 }
 
 .eyebrow {
@@ -82,10 +144,130 @@ h1 {
   margin-top: 6px;
 }
 
+.menuHeading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.sectionKicker {
+  color: var(--primary-strong);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.menuHeading h2 {
+  margin-top: 5px;
+  font-size: 1.2rem;
+  line-height: 1.3;
+}
+
+.learnedSummary {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.studyMenu {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 26px;
+}
+
+.menuOption {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: 1px solid var(--menu-border);
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: var(--menu-background);
+  color: var(--foreground);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.menuOption:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: var(--menu-hover);
+  transform: translateY(-1px);
+}
+
+.menuOption.selected {
+  border-color: var(--primary);
+  background: var(--menu-selected);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.menuOption:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.menuMark {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--primary-soft);
+  color: var(--primary-strong);
+  font-size: 1.45rem;
+  font-weight: 700;
+}
+
+.menuCopy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.menuCopy strong {
+  font-size: 0.98rem;
+}
+
+.menuCopy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.menuBadge {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-align: right;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.menuArrow {
+  min-width: 3.3rem;
+  color: var(--primary-strong);
+  font-size: 1.15rem;
+  font-weight: 800;
+  text-align: right;
+  white-space: nowrap;
+}
+
 .progressSection {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-bottom: 26px;
 }
 
 .progressHeader {
@@ -241,6 +423,39 @@ h1 {
     padding: 18px;
   }
 
+  .topBar {
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+
+  .themeToggle {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .menuHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .menuOption {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .menuBadge {
+    display: none;
+  }
+
+  .menuArrow {
+    min-width: auto;
+  }
+
+  .menuCopy small {
+    white-space: normal;
+  }
+
   .buttonRow {
     flex-direction: column;
   }
@@ -253,4 +468,23 @@ h1 {
   .characterStage {
     min-height: 220px;
   }
+}
+
+.pageShell.nightMode {
+  --background: #101a28;
+  --card: #172536;
+  --foreground: #f3f7fb;
+  --muted: #a9b8c9;
+  --primary: #78a9ff;
+  --primary-strong: #b8d1ff;
+  --primary-soft: #203b62;
+  --border: #33465e;
+  --app-background: rgba(18, 30, 46, 0.92);
+  --app-border: rgba(160, 190, 225, 0.18);
+  --app-shadow: 0 24px 70px rgba(3, 8, 17, 0.38);
+  --menu-background: rgba(22, 38, 58, 0.82);
+  --menu-border: #33465e;
+  --menu-hover: #203957;
+  --menu-selected: #1e3554;
+  background: linear-gradient(135deg, #101a28 0%, #26384a 100%);
 }
