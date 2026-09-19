@@ -488,3 +488,8 @@ h1 {
   --menu-selected: #1e3554;
   background: linear-gradient(135deg, #101a28 0%, #26384a 100%);
 }
+
+.pageShell.nightMode .characterStage {
+  background: linear-gradient(145deg, #0d1726 0%, #1b3048 100%);
+  border-color: #2d4663;
+}
