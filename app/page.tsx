@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Flashcard from './components/Flashcard';
+import ProfilePicker, { Profile } from './components/ProfilePicker';
 import ProgressBar from './components/ProgressBar';
 import SentencePractice from './components/SentencePractice';
 
@@ -12,7 +13,6 @@ type Word = {
   english: string;
 };
 
-const STORAGE_KEY = 'learnedWords';
 const THEME_STORAGE_KEY = 'chinese-learning-theme';
 const SENTENCE_UNLOCK_COUNT = 20;
 
@@ -20,6 +20,8 @@ type StudyMode = 'words' | 'sentences';
 
 export default function Home() {
   const [words, setWords] = useState<Word[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [activeProfile, setActiveProfile] = useState<Profile | null>(null);
   const [learnedWords, setLearnedWords] = useState<number[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -27,32 +29,24 @@ export default function Home() {
   const [isNightMode, setIsNightMode] = useState(false);
 
   useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) {
-          setLearnedWords(parsed.filter((value): value is number => Number.isInteger(value)));
-        }
-      } catch {
-        localStorage.removeItem(STORAGE_KEY);
-      }
-    }
-
     if (localStorage.getItem(THEME_STORAGE_KEY) === 'night') {
       setIsNightMode(true);
     }
 
-    fetch('/top_2500_characters.json')
-      .then((response) => response.json())
-      .then((data: Word[]) => setWords(data))
-      .catch(() => setWords([]))
+    Promise.all([
+      fetch('/top_2500_characters.json').then((response) => response.json() as Promise<Word[]>),
+      fetch('/api/profiles').then((response) => response.json() as Promise<Profile[]>),
+    ])
+      .then(([vocabulary, savedProfiles]) => {
+        setWords(vocabulary);
+        setProfiles(savedProfiles);
+      })
+      .catch(() => {
+        setWords([]);
+        setProfiles([]);
+      })
       .finally(() => setIsLoading(false));
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(learnedWords));
-  }, [learnedWords]);
 
   useEffect(() => {
     localStorage.setItem(THEME_STORAGE_KEY, isNightMode ? 'night' : 'day');
@@ -63,16 +57,22 @@ export default function Home() {
     [words, learnedWords],
   );
 
-  useEffect(() => {
-    if (unlearnedWords.length === 0) {
-      setCurrentIndex(0);
-      return;
-    }
-
-    setCurrentIndex((previous) => Math.min(previous, unlearnedWords.length - 1));
-  }, [unlearnedWords.length]);
-
   const currentWord = unlearnedWords[currentIndex] ?? null;
+
+  const selectProfile = (profile: Profile) => {
+    setActiveProfile(profile);
+    setLearnedWords(profile.learnedWordIds);
+    setCurrentIndex(0);
+  };
+
+  const createProfile = (profile: Profile) => {
+    setProfiles((previous) => [...previous, profile]);
+    selectProfile(profile);
+  };
+
+  const deleteProfile = (profileId: string) => {
+    setProfiles((previous) => previous.filter((profile) => profile.id !== profileId));
+  };
 
   const handleMarkLearned = () => {
     if (!currentWord) {
@@ -83,7 +83,15 @@ export default function Home() {
       if (previous.includes(currentWord.id)) {
         return previous;
       }
-      return [...previous, currentWord.id];
+      const nextLearnedWords = [...previous, currentWord.id];
+      if (activeProfile) {
+        fetch('/api/profiles', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: activeProfile.id, learnedWordIds: nextLearnedWords }),
+        }).catch(() => undefined);
+      }
+      return nextLearnedWords;
     });
 
     setCurrentIndex((previous) => Math.min(previous, Math.max(unlearnedWords.length - 2, 0)));
@@ -102,20 +110,39 @@ export default function Home() {
               Build your foundation one character at a time, then use it in context.
             </p>
           </div>
-          <button
-            type="button"
-            className="themeToggle"
-            onClick={() => setIsNightMode((previous) => !previous)}
-            aria-pressed={isNightMode}
-            aria-label={`Switch to ${isNightMode ? 'day' : 'night'} mode`}
-          >
-            <span className="themeIcon" aria-hidden="true">
-              {isNightMode ? '☀' : '◐'}
-            </span>
-            <span>{isNightMode ? 'Day mode' : 'Night mode'}</span>
-          </button>
+          <div className="topActions">
+            {activeProfile ? (
+              <button type="button" className="profileSwitch" onClick={() => setActiveProfile(null)}>
+                <span className="profileMiniAvatar" aria-hidden="true">{activeProfile.name.slice(0, 1).toUpperCase()}</span>
+                <span>{activeProfile.name}</span>
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="themeToggle"
+              onClick={() => setIsNightMode((previous) => !previous)}
+              aria-pressed={isNightMode}
+              aria-label={`Switch to ${isNightMode ? 'day' : 'night'} mode`}
+            >
+              <span className="themeIcon" aria-hidden="true">
+                {isNightMode ? '☀' : '◐'}
+              </span>
+              <span>{isNightMode ? 'Day mode' : 'Night mode'}</span>
+            </button>
+          </div>
         </header>
 
+        {isLoading || !activeProfile ? (
+          <ProfilePicker
+            profiles={profiles}
+            isLoading={isLoading}
+            onProfileSelected={selectProfile}
+            onProfileCreated={createProfile}
+            onProfileDeleted={deleteProfile}
+          />
+        ) : null}
+
+        {activeProfile ? <>
         <div className="menuHeading">
           <div>
             <p className="sectionKicker">Study menu</p>
@@ -183,6 +210,7 @@ export default function Home() {
         ) : (
           <div className="loadingState">All words mastered — check back later.</div>
         )}
+        </> : null}
       </section>
     </main>
   );
