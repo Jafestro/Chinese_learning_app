@@ -5,6 +5,7 @@ import Flashcard from './components/Flashcard';
 import ProfilePicker, { Profile } from './components/ProfilePicker';
 import ProgressBar from './components/ProgressBar';
 import SentencePractice from './components/SentencePractice';
+import WordPractice from './components/WordPractice';
 
 type Word = {
   id: number;
@@ -16,7 +17,7 @@ type Word = {
 const THEME_STORAGE_KEY = 'chinese-learning-theme';
 const SENTENCE_UNLOCK_COUNT = 20;
 
-type StudyMode = 'words' | 'sentences';
+type StudyMode = 'words' | 'practice' | 'sentences';
 
 export default function Home() {
   const [words, setWords] = useState<Word[]>([]);
@@ -57,12 +58,18 @@ export default function Home() {
     [words, learnedWords],
   );
 
+  const learnedVocabulary = useMemo(
+    () => words.filter((word) => learnedWords.includes(word.id)),
+    [words, learnedWords],
+  );
+
   const currentWord = unlearnedWords[currentIndex] ?? null;
 
   const selectProfile = (profile: Profile) => {
     setActiveProfile(profile);
     setLearnedWords(profile.learnedWordIds);
     setCurrentIndex(0);
+    setActiveMode('words');
   };
 
   const createProfile = (profile: Profile) => {
@@ -192,12 +199,40 @@ export default function Home() {
               {canPracticeSentences ? '→' : 'Locked'}
             </span>
           </button>
+
+          <button
+            type="button"
+            className={`menuOption ${activeMode === 'practice' ? 'selected' : ''}`}
+            onClick={() => setActiveMode('practice')}
+            disabled={learnedVocabulary.length === 0}
+            aria-pressed={activeMode === 'practice'}
+          >
+            <span className="menuMark" aria-hidden="true">回</span>
+            <span className="menuCopy">
+              <strong>Word Practice</strong>
+              <small>
+                {learnedVocabulary.length > 0
+                  ? 'Review words you have already learned'
+                  : 'Learn a word first to unlock practice'}
+              </small>
+            </span>
+            <span className="menuBadge">
+              {learnedVocabulary.length > 0
+                ? `${learnedVocabulary.length} ready`
+                : 'Locked'}
+            </span>
+            <span className="menuArrow" aria-hidden="true">
+              {learnedVocabulary.length > 0 ? '→' : 'Locked'}
+            </span>
+          </button>
         </nav>
 
         <ProgressBar current={learnedWords.length} total={words.length || 2500} />
 
         {isLoading ? (
           <div className="loadingState">Loading vocabulary...</div>
+        ) : activeMode === 'practice' && learnedVocabulary.length > 0 ? (
+          <WordPractice words={learnedVocabulary} />
         ) : activeMode === 'sentences' && canPracticeSentences ? (
           <SentencePractice learnedWords={learnedWords} />
         ) : currentWord ? (
